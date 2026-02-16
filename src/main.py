@@ -54,12 +54,12 @@ def stopAudio():
     is_recording = False
 
 def process_audio():
-    question = transcribe("output.wav", API_KEY)
+    question = transcribe("src/output.wav", API_KEY)
     eel.updateQuestionText(question)
     answer = send_ai_request(SYSTEM, question, MODEL, API_KEY)
     eel.updateAnswerText(answer)
     
-    os.remove("output.wav")
+    os.remove("src/output.wav")
 
-eel.init("www")
+eel.init("src/www")
 eel.start("index.html")
