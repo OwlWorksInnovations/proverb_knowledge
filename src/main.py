@@ -2,6 +2,11 @@ import eel, os, threading, pyaudio, wave, dotenv
 from transcribe import transcribe
 from ai import send_ai_request
 from groq import Groq
+from get_window import get_window_size
+import pystray
+from PIL import Image
+import win32console
+import win32gui
 
 dotenv.load_dotenv()
 def env(name: str) -> str:
@@ -64,5 +69,39 @@ def process_audio():
     
     os.remove("src/output.wav")
 
-eel.init("src/www")
-eel.start("index.html", size=(400, 600))
+image = Image.open("./assets/image.png")
+
+is_hidden = False
+
+def after_click(icon, item):
+    global is_hidden
+    hwnd = win32gui.FindWindow(None, "Proverb Knowledge") 
+    
+    if str(item) == "Show/Hide":
+        if is_hidden:
+            win32gui.ShowWindow(hwnd, 5)
+            win32gui.SetForegroundWindow(hwnd)
+            is_hidden = False
+        else:
+            win32gui.ShowWindow(hwnd, 0)
+            is_hidden = True
+            
+    elif str(item) == "Exit":
+        icon.stop()
+        os._exit(0)
+
+icon = pystray.Icon("PVK", image, "Proverb Knowledge", 
+                    menu=pystray.Menu(
+                        pystray.MenuItem("Show/Hide", after_click),
+                        pystray.MenuItem("Exit", after_click)))
+
+win = win32console.GetConsoleWindow()
+win32gui.ShowWindow(win, 0)
+
+SCREEN_WIDTH, SCREEN_HEIGHT = get_window_size()
+def run_eel():
+    eel.init("src/www")
+    eel.start("index.html", size=(400, 600), position=(SCREEN_WIDTH, SCREEN_HEIGHT), )
+
+threading.Thread(target=run_eel, daemon=True).start()
+icon.run()
