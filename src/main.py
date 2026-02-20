@@ -7,6 +7,8 @@ import pystray
 from PIL import Image
 import win32console
 import win32gui
+from pynput import keyboard
+import pyautogui
 
 dotenv.load_dotenv()
 def env(name: str) -> str:
@@ -72,19 +74,48 @@ def process_audio():
 image = Image.open("./assets/image.png")
 
 is_hidden = False
+def hide_window():
+    global is_hidden
+    hwnd = win32gui.FindWindow(None, "Proverb Knowledge") 
+    win32gui.ShowWindow(hwnd, 0)
+    is_hidden = True       
+
+def show_window():
+    global is_hidden
+    hwnd = win32gui.FindWindow(None, "Proverb Knowledge") 
+    win32gui.ShowWindow(hwnd, 5)
+    pyautogui.press("alt")
+    win32gui.SetForegroundWindow(hwnd)
+    is_hidden = False
+    
+def run_hotkey_listener():
+    cmb = [{keyboard.Key.shift, keyboard.KeyCode.from_char('a')}, {keyboard.Key.shift, keyboard.KeyCode.from_char('A')}]
+    current = set()
+    
+    def on_press(key):
+        if any([key in z for z in cmb]):
+            current.add(key)
+            if any(all(k in current for k in z) for z in cmb):
+                if is_hidden:
+                    show_window()
+                else:
+                    hide_window()
+
+    def on_release(key):
+        if any([key in z for z in cmb]):
+            current.remove(key)
+
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
 
 def after_click(icon, item):
     global is_hidden
-    hwnd = win32gui.FindWindow(None, "Proverb Knowledge") 
     
     if str(item) == "Show/Hide":
         if is_hidden:
-            win32gui.ShowWindow(hwnd, 5)
-            win32gui.SetForegroundWindow(hwnd)
-            is_hidden = False
+            show_window()
         else:
-            win32gui.ShowWindow(hwnd, 0)
-            is_hidden = True
+            hide_window()
             
     elif str(item) == "Exit":
         icon.stop()
@@ -104,4 +135,5 @@ def run_eel():
     eel.start("index.html", size=(400, 600), position=(SCREEN_WIDTH, SCREEN_HEIGHT), )
 
 threading.Thread(target=run_eel, daemon=True).start()
+threading.Thread(target=run_hotkey_listener, daemon=True).start()
 icon.run()
